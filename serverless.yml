@@ -1,0 +1,41 @@
+service: product-service
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'eu-west-3'}
+
+plugins:
+  - serverless-webpack
+  - serverless-auto-swagger
+
+custom:
+  webpack:
+    webpackConfig: webpack.config.js
+    packager: 'npm'
+    includeModules: true
+  autoswagger:
+    apiType: http
+    basePath: '/dev'
+    title: 'Products API'
+    generateSwaggerOnDeploy: true
+
+functions:
+  getProductList:
+    handler: src/functions/getProductList.handler
+    events:
+      - http:
+          path: /products
+          method: get
+          cors: true
+
+  getProductById:
+    handler: src/functions/getProductById.handler
+    events:
+      - http:
+          path: /products/{productId}
+          method: get
+          cors: true
