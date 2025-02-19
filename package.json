@@ -1,0 +1,20 @@
+{
+    "name": "aws-shop-react-backend",
+    "version": "1.0.0",
+    "private": true,
+    "workspaces": [
+      "product-service",
+      "import-service",
+      "authorization-service",
+      "cart-service"
+    ],
+    "scripts": {
+      "build": "npm run build --workspaces",
+      "test": "npm run test --workspaces",
+      "deploy": "npm run deploy --workspaces"
+    },
+    "devDependencies": {
+      "@types/node": "^18.0.0",
+      "typescript": "^4.7.4"
+    }
+}
