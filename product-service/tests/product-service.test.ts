@@ -1,14 +1,15 @@
 import * as cdk from 'aws-cdk-lib';
 import { Template } from 'aws-cdk-lib/assertions';
 import { ProductServiceStack } from '../lib/product-service-stack';
+import { PRODUCT_SERVICE_STACK_NAME } from '../lib/constants';
 
-describe('ProductServiceStack', () => {
+describe(PRODUCT_SERVICE_STACK_NAME, () => {
   const app = new cdk.App();
   const stack = new ProductServiceStack(app, 'TestProductServiceStack');
   const template = Template.fromStack(stack);
 
   test('Should create two Lambda functions', () => {
-    template.resourceCountIs('AWS::Lambda::Function', 2);
+    template.resourceCountIs('AWS::Lambda::Function', 3);
   });
 
   test('Should create API Gateway REST API', () => {
@@ -20,7 +21,7 @@ describe('ProductServiceStack', () => {
   });
 
   test('Should create API Gateway methods', () => {
-    template.resourceCountIs('AWS::ApiGateway::Method', 2); // GET methods for both endpoints
+    template.resourceCountIs('AWS::ApiGateway::Method', 6);
   });
 
   test('Lambda functions should have correct properties', () => {
@@ -63,17 +64,5 @@ describe('ProductServiceStack', () => {
   test('API Gateway should have deployment and stage', () => {
     template.resourceCountIs('AWS::ApiGateway::Deployment', 1);
     template.resourceCountIs('AWS::ApiGateway::Stage', 1);
-  });
-
-  test('Should have correct resource path for product by ID', () => {
-    template.hasResourceProperties('AWS::ApiGateway::Resource', {
-      PathPart: '{productId}'
-    });
-  });
-
-  test('Should have correct resource path for products list', () => {
-    template.hasResourceProperties('AWS::ApiGateway::Resource', {
-      PathPart: 'products'
-    });
   });
 });

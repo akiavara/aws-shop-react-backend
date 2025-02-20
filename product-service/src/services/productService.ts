@@ -1,30 +1,73 @@
-import { Product } from '../types';
+import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from '../../lib/constants';
+import { Product, ProductWithStock, Stock } from '../types';
+import { DynamoDB } from 'aws-sdk';
 
-export const products: Product[] = [
-  {
-    id: '1',
-    title: 'iPhone 13',
-    description: 'Latest iPhone model',
-    price: 999,
-    count: 10
-  },
-  {
-    id: '2',
-    title: 'MacBook Pro',
-    description: 'Powerful laptop for professionals',
-    price: 1999,
-    count: 5
+const dynamoDb = new DynamoDB.DocumentClient();
+
+export const getProducts = async (): Promise<ProductWithStock[]> => {
+  try {
+    // Get all products
+    const productsResult = await dynamoDb.scan({
+      TableName: PRODUCTS_TABLE_NAME
+    }).promise();
+
+    // Get all stocks
+    const stocksResult = await dynamoDb.scan({
+      TableName: STOCKS_TABLE_NAME
+    }).promise();
+
+    const products = productsResult.Items as Product[];
+    const stocks = stocksResult.Items as Stock[];
+
+    // Create a map of product_id to count for faster lookup
+    const stocksMap = stocks.reduce((acc, stock) => {
+      acc[stock.product_id] = stock.count;
+      return acc;
+    }, {} as { [key: string]: number });
+
+    // Combine products with their stock counts
+    return products.map((product) => ({
+      ...product,
+      count: stocksMap[product.id] || 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching products with stock:', error);
+    throw error;
   }
-];
-
-export const getProducts = async (): Promise<Product[]> => {
-  return products;
 };
 
-export const getProductById = async (productId: string): Promise<Product> => {
-  const product = products.find(p => p.id === productId);
-  if (!product) {
-    throw new Error('Product not found');
+export const getProductById = async (productId: string): Promise<ProductWithStock> => {
+  try {
+    // Get product
+    const productResult = await dynamoDb.get({
+      TableName: PRODUCTS_TABLE_NAME,
+      Key: {
+        id: productId
+      }
+    }).promise();
+
+    if (!productResult.Item) {
+      throw new Error('Product not found');
+    }
+
+    // Get stock
+    const stockResult = await dynamoDb.get({
+      TableName: STOCKS_TABLE_NAME,
+      Key: {
+        product_id: productId
+      }
+    }).promise();
+
+    const product = productResult.Item as Product;
+    const stock = stockResult.Item as Stock;
+
+    // Combine product with its stock count
+    return {
+      ...product,
+      count: stock?.count || 0,
+    };
+  } catch (error) {
+    console.error('Error fetching product with stock:', error);
+    throw error;
   }
-  return product;
 };

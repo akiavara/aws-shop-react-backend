@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { handler } from '../../src/functions/getProductById';
 import * as productService from '../../src/services/productService';
-import { Product } from '../../src/types';
+import { Product, ProductWithStock } from '../../src/types';
 import { createAPIGatewayProxyEvent } from '../utils/mockFactory';
 
 jest.mock('../../src/services/productService', () => ({
@@ -10,12 +10,12 @@ jest.mock('../../src/services/productService', () => ({
 
 describe('getProductById', () => {
   it('should return product when found', async () => {
-    const mockProduct: Product = {
+    const mockProduct: ProductWithStock = {
       id: '1',
       title: 'Test Product',
       description: 'Test',
       price: 100,
-      count: 1
+      count: 10
     };
 
     const mockedGetProductById = productService.getProductById as jest.MockedFunction<typeof productService.getProductById>;
