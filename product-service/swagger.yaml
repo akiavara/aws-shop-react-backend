@@ -1,0 +1,128 @@
+# product-service/swagger.yaml
+openapi: 3.0.0
+info:
+  title: AWS Shop API
+  description: API for AWS Shop backend services
+  version: 1.0.0
+  contact:
+    name: Your Name
+    email: your.email@example.com
+
+servers:
+  - url: https://1tmvuptf84.execute-api.eu-west-3.amazonaws.com/dev
+    description: Development server
+
+tags:
+  - name: Products
+    description: Product management endpoints
+
+paths:
+  /products:
+    get:
+      tags:
+        - Products
+      summary: Get all products
+      description: Returns a list of all available products
+      operationId: getProductList
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /products/{productId}:
+    get:
+      tags:
+        - Products
+      summary: Get product by ID
+      description: Returns a single product by its ID
+      operationId: getProductById
+      parameters:
+        - name: productId
+          in: path
+          description: ID of the product to retrieve
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    Product:
+      type: object
+      required:
+        - id
+        - title
+        - price
+        - count
+      properties:
+        id:
+          type: string
+          example: "1"
+          description: Unique identifier for the product
+        title:
+          type: string
+          example: "iPhone 13"
+          description: Name of the product
+        description:
+          type: string
+          example: "Latest iPhone model"
+          description: Detailed description of the product
+        price:
+          type: number
+          format: float
+          example: 999
+          description: Price of the product in USD
+        count:
+          type: integer
+          example: 10
+          description: Available quantity of the product
+
+    Error:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Internal server error"
+          description: Error message describing what went wrong
+
+  securitySchemes:
+    # For future use with authorization service
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+# Global security requirements - uncomment when authorization is implemented
+# security:
+#   - bearerAuth: []
