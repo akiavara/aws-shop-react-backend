@@ -2,26 +2,27 @@ const path = require('path');
 const glob = require('glob');
 
 // Get all JavaScript/TypeScript files in the src/functions directory
-const entries = glob.sync('./src/functions/*/index.ts').reduce((acc, file) => {
-  const name = file.split('/')[3]; // Get the function name from the path
-  acc[name] = './' + file;
+const entryPoints = glob.sync('./src/functions/*/index.ts').reduce((acc, path) => {
+  const entry = path.replace('./src/functions/', '').replace('/index.ts', '');
+  acc[entry] = './' + path;
   return acc;
 }, {});
 
 module.exports = {
+  mode: 'development',
   target: 'node',
-  mode: 'production',
-  entry: entries,
+  devtool: 'source-map',
+  entry: entryPoints,
   output: {
-    filename: '[name]/index.js',
     path: path.resolve(__dirname, 'dist'),
+    filename: '[name]/index.js',
     libraryTarget: 'commonjs2',
   },
   externals: [
     'aws-sdk',
+    '@aws-sdk/client-cloudformation',
     '@aws-sdk/client-dynamodb',
     '@aws-sdk/lib-dynamodb',
-    'uuid'
   ],
   optimization: {
     minimize: true,

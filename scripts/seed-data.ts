@@ -1,5 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
-import { DynamoDB, CloudFormation } from 'aws-sdk';
+import { CloudFormation } from '@aws-sdk/client-cloudformation';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 import { PRODUCT_SERVICE_STACK_NAME, PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from '../product-service/lib/constants';
 import { Product } from '../product-service/src/types';
@@ -48,7 +50,7 @@ async function getTableNames() {
   try {
     const { Stacks } = await cloudformation.describeStacks({
       StackName: PRODUCT_SERVICE_STACK_NAME
-    }).promise();
+    });
 
     if (!Stacks || Stacks.length === 0) {
       throw new Error(`Stack ${PRODUCT_SERVICE_STACK_NAME} not found`);
@@ -75,9 +77,9 @@ const stocks = products.map(product => ({
 }));
 
 async function seedData() {
-  const dynamodb = new DynamoDB.DocumentClient({
+  const dynamodb = DynamoDBDocument.from(new DynamoDB({
     region: process.env.CDK_DEFAULT_REGION || 'eu-west-3'
-  });
+  }));
 
   const { productsTableName, stocksTableName } = await getTableNames();
 
@@ -89,7 +91,7 @@ async function seedData() {
       await dynamodb.put({
         TableName: productsTableName,
         Item: product
-      }).promise();
+      });
       console.log(`Imported product: ${product.title}`);
     } catch (error) {
       console.error(`Failed to import product ${product.title}:`, error);
@@ -102,7 +104,7 @@ async function seedData() {
       await dynamodb.put({
         TableName: stocksTableName,
         Item: stock
-      }).promise();
+      });
       console.log(`Imported stock for product: ${stock.product_id}`);
     } catch (error) {
       console.error(`Failed to import stock for product ${stock.product_id}:`, error);
