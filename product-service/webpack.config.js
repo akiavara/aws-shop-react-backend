@@ -18,7 +18,8 @@ module.exports = {
     libraryTarget: 'commonjs2',
   },
   externals: [
-    'aws-sdk',
+    //'aws-sdk',
+    '@aws-sdk/client-cloudformation',
     '@aws-sdk/client-dynamodb',
     '@aws-sdk/lib-dynamodb',
     'uuid'

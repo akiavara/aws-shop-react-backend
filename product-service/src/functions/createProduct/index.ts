@@ -1,11 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
 import { v4 as uuidv4 } from 'uuid';
 import { Product, Stock } from '../../types';
 import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from '../../../lib/constants';
 import { buildResponse } from '../../utils/responseBuilder';
 
-const dynamodb = new DynamoDB.DocumentClient();
+const dynamodb = DynamoDBDocument.from(new DynamoDB());
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('POST /products request:', { event, body: event.body ? JSON.parse(event.body) : null });
@@ -18,8 +19,15 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     const { title, description, price, count } = JSON.parse(event.body);
 
+    console.log('Price value:', { price });
+    console.log('Count value:', { count });
+
     if (!title || !description || !price || count === undefined) {
       return buildResponse(origin, 400, { message: 'Missing required fields' });
+    }
+
+    if (price < 0 || count < 0) {
+      return buildResponse(origin, 400, { message: 'Price and count must be non-negative values' });
     }
 
     const productId = uuidv4();
@@ -50,7 +58,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
           }
         }
       ]
-    }).promise();
+    });
 
     return buildResponse(origin, 201, { ...product, count });
   } catch (error) {
