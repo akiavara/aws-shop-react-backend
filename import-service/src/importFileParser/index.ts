@@ -1,112 +1,96 @@
 import { APIGatewayProxyResult, S3Event } from "aws-lambda";
-import { S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3, S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 const csv = require('csv-parser');
 const { Readable } = require('stream');
+
+const s3 = new S3();
+
+interface ProductRecord {
+  title: string;
+  description: string;
+  price: number;
+  count: number;
+}
 
 export const handler = async (event: S3Event): Promise<APIGatewayProxyResult> => {
   console.log('importFileParser lambda invoked with event:', JSON.stringify(event));
 
-  const region = process.env.BUCKET_REGION || 'eu-west-3';
-  const toProcess = event.Records.filter(record => record.s3.object.key.startsWith('uploaded/'));
+  const toProcess = event.Records.filter(record => record.s3.object.key.startsWith('uploaded/') && record.s3.object.key.endsWith('.csv'));
 
-  // Process files sequentially with Promise.all
-  await Promise.all(toProcess.map(async (record) => {
-    const s3 = new S3Client({ region });
-    const bucket = record.s3.bucket.name;
-    const key = record.s3.object.key;
+  try {
+    for (const record of toProcess) {
+      const bucket = record.s3.bucket.name;
+      const key = decodeURIComponent(record.s3.object.key.replace(/\+/g, ' '));
 
-    // Check if the file is a CSV
-    if (!key.endsWith('.csv')) {
-      console.log('Not a CSV file:', key);
-      return;
-    }
+      console.log(`Processing file ${key} from bucket ${bucket}`);
 
-    console.log('Files to process:', key);
-
-    try {
-      // Get the object from S3
-      const getObjectCommand = new GetObjectCommand({
+      // Get the file from S3
+      const s3Object = await s3.getObject({
         Bucket: bucket,
         Key: key,
       });
 
-      const response = await s3.send(getObjectCommand);
+      // Process the CSV file
+      const records: ProductRecord[] = await new Promise((resolve, reject) => {
+        const results: ProductRecord[] = [];
 
-      // Read the stream - use type assertion for Body or check if it's defined
-      const stream = response.Body;
+        if (!s3Object.Body) {
+          reject(new Error('Empty file'));
+          return;
+        }
 
-      if (!stream) {
-        console.error('Failed to get file stream');
-        return;
-      }
+        const readableStream = Readable.from(s3Object.Body as any);
 
-      // Parse CSV using csv-parser library
-      const results: any[] = [];
-
-      // Get string content from stream
-      const str = await stream.transformToString();
-
-      // Create a readable stream from the string content
-      const readableStream = Readable.from([str]);
-
-      // Create a promise to handle the csv-parser processing
-      await new Promise((resolve, reject) => {
         readableStream
           .pipe(csv())
-          .on('data', (data: any) => {
+          .on('data', (data: ProductRecord) => {
+            // Validate and transform the data
+            const product = {
+              title: data.title,
+              description: data.description,
+              price: Number(data.price),
+              count: Number(data.count),
+            };
             console.log('Parsed CSV row:', data);
-            results.push(data);
+            results.push(product);
           })
           .on('end', () => {
             resolve(results);
           })
-          .on('error', (error: Error) => {
-            console.error('Error parsing CSV:', error);
+          .on('error', (error: any) => {
             reject(error);
           });
       });
 
-      console.log(`Successfully parsed ${results.length} records from CSV file`);
-    } catch (error) {
-      console.error('Error processing CSV file:', error);
-    }
-
-    try {
-      const newKey = key.replace('uploaded/', 'parsed/');
-
-      const copyObjectCommand = new CopyObjectCommand({
+      // Move the processed file to the 'parsed' folder
+      const newKey = key.replace('uploaded', 'parsed');
+      await s3.copyObject({
         Bucket: bucket,
         CopySource: `${bucket}/${key}`,
         Key: newKey,
       });
 
-      await s3.send(copyObjectCommand);
-
-      console.log(`File copied successfully to ${newKey}`);
-    } catch (err) {
-      console.error('Error copying file:', err);
-    }
-
-    try {
-      const deleteObjectCommand = new DeleteObjectCommand({
+      await s3.deleteObject({
         Bucket: bucket,
         Key: key,
       });
 
-      await s3.send(deleteObjectCommand);
+      console.log(`File ${key} has been processed and moved to ${newKey}`);
 
-      console.log(`File deleted successfully from ${key}`);
-    } catch (err) {
-      console.error('Error deleting file:', err);
     }
-  }));
 
-  return {
-    statusCode: 400,
-    headers: {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Credentials': true,
-    },
-    body: JSON.stringify({ error: 'Missing required query parameter: name' }),
-  };
+    return {
+      statusCode: 200,
+      body: JSON.stringify({
+        message: 'Files processed successfully',
+      }),
+    };
+  } catch (error) {
+    return {
+      statusCode: 500,
+      body: JSON.stringify({
+        message: 'An error occured while parsing file',
+      }),
+    };
+  }
 };
