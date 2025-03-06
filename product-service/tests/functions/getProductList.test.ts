@@ -1,7 +1,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult, Context } from 'aws-lambda';
 import { handler } from '../../src/functions/getProductList';
 import * as productService from '../../src/services/productService';
-import { Product } from '../../src/types';
+import { Product, ProductWithStock } from '../../src/types';
 
 // Properly type the mock
 jest.mock('../../src/services/productService', () => ({
@@ -10,8 +10,8 @@ jest.mock('../../src/services/productService', () => ({
 
 describe('getProductList', () => {
   it('should return all products', async () => {
-    const mockProducts: Product[] = [
-      { id: '1', title: 'Test Product', description: 'Test', price: 100, count: 1 }
+    const mockProducts: ProductWithStock[] = [
+      { id: '1', title: 'Test Product', description: 'Test', price: 100, count: 10 }
     ];
 
     // Correct mock typing

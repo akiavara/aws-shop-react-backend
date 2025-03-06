@@ -1,12 +1,9 @@
 # product-service/swagger.yaml
 openapi: 3.0.0
 info:
-  title: AWS Shop API
-  description: API for AWS Shop backend services
+  title: Product Service
+  description: Product Service API for AWS Shop backend services
   version: 1.0.0
-  contact:
-    name: Your Name
-    email: your.email@example.com
 
 servers:
   - url: https://1tmvuptf84.execute-api.eu-west-3.amazonaws.com/dev
@@ -33,6 +30,53 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Product'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Products
+      summary: Create a new product
+      description: Creates a new product with the provided details
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - price
+                - count
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                price:
+                  type: number
+                  minimum: 0
+                count:
+                  type: integer
+                  minimum: 0
+      responses:
+        '201':
+          description: Product created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '500':
           description: Internal Server Error
           content:
@@ -86,26 +130,16 @@ components:
       properties:
         id:
           type: string
-          example: "1"
-          description: Unique identifier for the product
         title:
           type: string
-          example: "iPhone 13"
-          description: Name of the product
         description:
           type: string
-          example: "Latest iPhone model"
-          description: Detailed description of the product
         price:
           type: number
-          format: float
-          example: 999
-          description: Price of the product in USD
+          minimum: 0
         count:
           type: integer
-          example: 10
-          description: Available quantity of the product
-
+          minimum: 0
     Error:
       type: object
       required:
