@@ -1,9 +1,11 @@
 import { APIGatewayProxyResult, S3Event } from "aws-lambda";
 import { S3, S3Client, GetObjectCommand, CopyObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { SQS } from '@aws-sdk/client-sqs';
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 
 const s3 = new S3();
+const sqs = new SQS();
 
 interface ProductRecord {
   title: string;
@@ -51,7 +53,6 @@ export const handler = async (event: S3Event): Promise<APIGatewayProxyResult> =>
               price: Number(data.price),
               count: Number(data.count),
             };
-            console.log('Parsed CSV row:', data);
             results.push(product);
           })
           .on('end', () => {
@@ -61,6 +62,23 @@ export const handler = async (event: S3Event): Promise<APIGatewayProxyResult> =>
             reject(error);
           });
       });
+
+      // Send records to SQS
+      await Promise.all(
+        records.map(async (record) => {
+          try {
+            await sqs.sendMessage({
+              QueueUrl: process.env.CATALOG_ITEMS_QUEUE_URL!,
+              MessageBody: JSON.stringify(record),
+              MessageGroupId: 'product-import-group', // Same group ID for all messages
+            });
+            console.log('Successfully sent message to SQS:', record);
+          } catch (error) {
+            console.error('Error sending message to SQS:', error);
+            throw error;
+          }
+        })
+      );
 
       // Move the processed file to the 'parsed' folder
       const newKey = key.replace('uploaded', 'parsed');
@@ -76,7 +94,6 @@ export const handler = async (event: S3Event): Promise<APIGatewayProxyResult> =>
       });
 
       console.log(`File ${key} has been processed and moved to ${newKey}`);
-
     }
 
     return {
