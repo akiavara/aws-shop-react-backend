@@ -36,7 +36,7 @@ export class ProductServiceStack extends cdk.Stack {
     const createProduct = new lambda.Function(this, 'CreateProduct', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../dist/createProduct')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../dist/src/functions/createProduct')),
       environment: tableEnvironment,
     });
 
@@ -71,7 +71,7 @@ export class ProductServiceStack extends cdk.Stack {
     const getProductList = new lambda.Function(this, 'GetProductList', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../dist/getProductList')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../dist/src/functions/getProductList')),
       environment: tableEnvironment,
     });
 
@@ -82,7 +82,7 @@ export class ProductServiceStack extends cdk.Stack {
     const getProductById = new lambda.Function(this, 'GetProductById', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join(__dirname, '../dist/getProductById')),
+      code: lambda.Code.fromAsset(path.join(__dirname, '../dist/src/functions/getProductById')),
       environment: tableEnvironment,
     });
 

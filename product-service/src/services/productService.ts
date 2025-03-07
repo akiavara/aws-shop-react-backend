@@ -1,20 +1,21 @@
 import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from '../../lib/constants';
 import { Product, ProductWithStock, Stock } from '../types';
-import { DynamoDB } from 'aws-sdk';
+import { DynamoDBDocument } from '@aws-sdk/lib-dynamodb';
+import { DynamoDB } from '@aws-sdk/client-dynamodb';
 
-const dynamoDb = new DynamoDB.DocumentClient();
+const dynamoDb = DynamoDBDocument.from(new DynamoDB());
 
 export const getProducts = async (): Promise<ProductWithStock[]> => {
   try {
     // Get all products
     const productsResult = await dynamoDb.scan({
       TableName: PRODUCTS_TABLE_NAME
-    }).promise();
+    });
 
     // Get all stocks
     const stocksResult = await dynamoDb.scan({
       TableName: STOCKS_TABLE_NAME
-    }).promise();
+    });
 
     const products = productsResult.Items as Product[];
     const stocks = stocksResult.Items as Stock[];
@@ -44,7 +45,7 @@ export const getProductById = async (productId: string): Promise<ProductWithStoc
       Key: {
         id: productId
       }
-    }).promise();
+    });
 
     if (!productResult.Item) {
       throw new Error('Product not found');
@@ -56,7 +57,7 @@ export const getProductById = async (productId: string): Promise<ProductWithStoc
       Key: {
         product_id: productId
       }
-    }).promise();
+    });
 
     const product = productResult.Item as Product;
     const stock = stockResult.Item as Stock;
