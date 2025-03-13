@@ -6,7 +6,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://1tmvuptf84.execute-api.eu-west-3.amazonaws.com/dev
+  - url: https://88fi19k4tg.execute-api.eu-west-3.amazonaws.com/dev
     description: Development server
 
 tags:
@@ -22,20 +22,20 @@ paths:
       description: Returns a list of all available products
       operationId: getProductList
       responses:
-        '200':
+        "200":
           description: Successful operation
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Product'
-        '500':
+                  $ref: "#/components/schemas/Product"
+        "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
     post:
       tags:
         - Products
@@ -65,24 +65,24 @@ paths:
                   type: integer
                   minimum: 0
       responses:
-        '201':
+        "201":
           description: Product created successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
-        '400':
+                $ref: "#/components/schemas/Product"
+        "400":
           description: Invalid input
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
   /products/{productId}:
     get:
@@ -99,24 +99,24 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        "200":
           description: Successful operation
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
-        '404':
+                $ref: "#/components/schemas/Product"
+        "404":
           description: Product not found
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
-        '500':
+                $ref: "#/components/schemas/Error"
+        "500":
           description: Internal Server Error
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Error'
+                $ref: "#/components/schemas/Error"
 
 components:
   schemas:
@@ -156,7 +156,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-
 # Global security requirements - uncomment when authorization is implemented
 # security:
 #   - bearerAuth: []
