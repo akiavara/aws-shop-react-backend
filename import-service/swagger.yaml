@@ -1,0 +1,48 @@
+openapi: 3.0.0
+info:
+  title: Import Service API
+  description: API for importing product data files
+  version: 1.0.0
+
+servers:
+  - url: https://sw0zfeofcb.execute-api.eu-west-3.amazonaws.com/dev
+    description: Development server
+
+paths:
+  /import:
+    get:
+      summary: Generate signed URL for file upload
+      operationId: importProductsFile
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Name of the file to be uploaded
+      responses:
+        200:
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: string
+                description: Signed URL for uploading the file
+        400:
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        500:
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
