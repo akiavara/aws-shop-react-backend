@@ -5,6 +5,7 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as path from 'path';
 import * as notifications from 'aws-cdk-lib/aws-s3-notifications';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -29,6 +30,12 @@ export class ImportServiceStack extends cdk.Stack {
       },
     });
 
+    // Get reference to the ImportCatalogItemsQueue SQS queue so the importFileParser
+    // can use it
+    const catalogItemsQueue = sqs.Queue.fromQueueArn(this, 'ImportCatalogItemsQueue',
+      `arn:aws:sqs:${this.region}:${this.account}:CatalogItemsQueue`
+    );
+
     const importFileParser = new lambda.Function(this, 'ImportFileParser', {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
@@ -37,10 +44,22 @@ export class ImportServiceStack extends cdk.Stack {
         BUCKET_NAME: bucket.bucketName,
         BUCKET_REGION: this.region,
         NODE_OPTIONS: '--enable-source-maps',
+        CATALOG_ITEMS_QUEUE_URL: catalogItemsQueue.queueUrl,
       },
     });
 
-    bucket.addEventNotification(s3.EventType.OBJECT_CREATED, new notifications.LambdaDestination(importFileParser))
+    // Grant send message permissions to the Lambda
+    catalogItemsQueue.grantSendMessages(importFileParser);
+
+    // Each time the bucket has a new object, importFileParser is notified
+    bucket.addEventNotification(
+      s3.EventType.OBJECT_CREATED,
+      new notifications.LambdaDestination(importFileParser),
+      {
+        prefix: 'uploaded/',
+        suffix: '.csv',
+      }
+    )
 
     // Create API Gateway
     const api = new apigateway.RestApi(this, 'ImportApi', {
