@@ -6,6 +6,22 @@ import { PutObjectCommand } from '@aws-sdk/client-s3';
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('importProductsFile lambda invoked with event:', JSON.stringify(event));
 
+  const origin = event.headers.origin || event.headers.Origin || '*'; // Get the Origin header
+
+  // Handle OPTIONS requests (preflight)
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Allow-Methods': 'GET,OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization,Content-Type',
+      },
+      body: '',
+    };
+  }
+
   try {
     // Get the filename from query parameters
     const fileName = event.queryStringParameters?.name;
@@ -13,7 +29,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return {
         statusCode: 400,
         headers: {
-          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Origin': origin,
           'Access-Control-Allow-Credentials': true,
         },
         body: JSON.stringify({ error: 'Missing required query parameter: name' }),
@@ -28,8 +44,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
       return {
         statusCode: 500,
         headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Credentials': true,
+          'Access-Control-Allow-Origin': origin,
+          'Access-Control-Allow-Credentials': 'true',
         },
         body: JSON.stringify({ error: 'Bucket name is not configured' }),
       };
@@ -54,8 +70,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return {
       statusCode: 200,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
       },
       body: signedUrl,
     };
@@ -65,8 +81,8 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
     return {
       statusCode: 500,
       headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Credentials': true,
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Credentials': 'true',
       },
       body: JSON.stringify({ error: 'Error generating signed URL', details: (error as Error).message }),
     };

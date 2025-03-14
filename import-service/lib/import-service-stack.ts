@@ -6,6 +6,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as path from 'path';
 import * as notifications from 'aws-cdk-lib/aws-s3-notifications';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { Duration } from 'aws-cdk-lib';
 
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: cdk.App, id: string, props?: cdk.StackProps) {
@@ -40,6 +41,7 @@ export class ImportServiceStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join(__dirname, '../dist/importFileParser')),
+      timeout: Duration.seconds(30),
       environment: {
         BUCKET_NAME: bucket.bucketName,
         BUCKET_REGION: this.region,
@@ -61,6 +63,23 @@ export class ImportServiceStack extends cdk.Stack {
       }
     )
 
+    // Get reference to the existing authorizer lambda
+    const authorizerLambda = lambda.Function.fromFunctionArn(
+      this,
+      'BasicAuthorizerLambda',
+      `arn:aws:lambda:${this.region}:${this.account}:function:basicAuthorizer`
+    );
+
+    // Create the Lambda authorizer
+    const authorizer = new apigateway.TokenAuthorizer(this, 'ImportApiAuthorizer', {
+      handler: authorizerLambda,
+      identitySource: apigateway.IdentitySource.header('Authorization'),
+      resultsCacheTtl: cdk.Duration.seconds(0), // Set to 0 for testing, adjust for production
+    });
+
+    // Grant the API Gateway permission to invoke the authorizer
+    authorizerLambda.grantInvoke(new iam.ServicePrincipal('apigateway.amazonaws.com'));
+
     // Create API Gateway
     const api = new apigateway.RestApi(this, 'ImportApi', {
       restApiName: 'Import Service',
@@ -69,9 +88,15 @@ export class ImportServiceStack extends cdk.Stack {
         stageName: 'dev',
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: ['*'],
+        allowOrigins: [
+          'https://d1ef84ecychojy.cloudfront.net',
+          'https://djy4jsds0nb88.cloudfront.net',
+          'http://localhost:3000',
+          'https://editor.swagger.io',
+        ],
         allowMethods: ['GET', 'OPTIONS', 'PUT'],
         allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key'],
+        allowCredentials: true,
       },
     });
 
@@ -91,7 +116,9 @@ export class ImportServiceStack extends cdk.Stack {
         requestParameters: {
           'method.request.querystring.name': true
         },
-        requestValidator: requestValidator
+        requestValidator: requestValidator,
+        authorizer: authorizer,
+        authorizationType: apigateway.AuthorizationType.CUSTOM,
       }
     );
 

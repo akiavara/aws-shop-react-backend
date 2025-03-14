@@ -70,7 +70,6 @@ export const handler = async (event: S3Event): Promise<APIGatewayProxyResult> =>
             await sqs.sendMessage({
               QueueUrl: process.env.CATALOG_ITEMS_QUEUE_URL!,
               MessageBody: JSON.stringify(record),
-              MessageGroupId: 'product-import-group', // Same group ID for all messages
             });
             console.log('Successfully sent message to SQS:', record);
           } catch (error) {
