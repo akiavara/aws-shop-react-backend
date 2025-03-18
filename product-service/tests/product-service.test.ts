@@ -8,8 +8,8 @@ describe(PRODUCT_SERVICE_STACK_NAME, () => {
   const stack = new ProductServiceStack(app, 'TestProductServiceStack');
   const template = Template.fromStack(stack);
 
-  test('Should create two Lambda functions', () => {
-    template.resourceCountIs('AWS::Lambda::Function', 3);
+  test('Should create four Lambda functions', () => {
+    template.resourceCountIs('AWS::Lambda::Function', 4);
   });
 
   test('Should create API Gateway REST API', () => {

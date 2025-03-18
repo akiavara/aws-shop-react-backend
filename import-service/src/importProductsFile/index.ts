@@ -9,7 +9,7 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
   try {
     // Get the filename from query parameters
     const fileName = event.queryStringParameters?.name;
-    if (!fileName) {
+    if (!fileName || !fileName.toLowerCase().endsWith('.csv')) {
       return {
         statusCode: 400,
         headers: {
