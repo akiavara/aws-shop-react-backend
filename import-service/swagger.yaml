@@ -5,14 +5,28 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://sw0zfeofcb.execute-api.eu-west-3.amazonaws.com/dev
+  - url: https://2z7vq35aj6.execute-api.eu-west-3.amazonaws.com/dev
     description: Development server
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: apiKey
+      name: Authorization
+      in: header
+      x-amazon-apigateway-authtype: custom
+      x-amazon-apigateway-authorizer:
+        type: token
+        authorizerUri: arn:aws:apigateway:eu-west-3:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-3:${AWS::AccountId}:function:basicAuthorizer/invocations
+        authorizerResultTtlInSeconds: 0
 
 paths:
   /import:
     get:
       summary: Generate signed URL for file upload
       operationId: importProductsFile
+      security:
+        - basicAuth: []
       parameters:
         - name: name
           in: query
@@ -28,6 +42,24 @@ paths:
               schema:
                 type: string
                 description: Signed URL for uploading the file
+        401:
+          description: Unauthorized - Missing or invalid Authorization header
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        403:
+          description: Forbidden - Invalid credentials
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
         400:
           description: Bad request
           content:
