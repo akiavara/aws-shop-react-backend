@@ -95,6 +95,31 @@ export class ProductServiceStack extends cdk.Stack {
     productsTable.grantReadData(getProductById);
     stocksTable.grantReadData(getProductById);
 
+    // Get reference to the existing authorizer lambda
+    const authorizerLambda = lambda.Function.fromFunctionArn(
+      this,
+      "BasicAuthorizerLambda",
+      `arn:aws:lambda:${this.region}:${this.account}:function:basicAuthorizer`
+    );
+
+    // Create the Lambda authorizer
+    const authorizer = new apigateway.TokenAuthorizer(
+      this,
+      "PostApiAuthorizer",
+      {
+        handler: authorizerLambda,
+        identitySource: apigateway.IdentitySource.header("Authorization"),
+        resultsCacheTtl: cdk.Duration.seconds(0), // Set to 0 for testing, adjust for production
+      }
+    );
+
+    // Grant the API Gateway permission to invoke the authorizer
+    authorizerLambda.grantInvoke(
+      new iam.ServicePrincipal("apigateway.amazonaws.com")
+    );
+
+    const methodsAllowed = ["GET", "POST", "OPTIONS"];
+
     // Create API Gateway
     const api = new apigateway.RestApi(this, 'ProductsApi', {
       restApiName: 'Products Service',
@@ -103,17 +128,57 @@ export class ProductServiceStack extends cdk.Stack {
         stageName: 'dev',
       },
       defaultCorsPreflightOptions: {
-        allowOrigins: ['*'],
-        allowMethods: ['GET', 'POST', 'OPTIONS'],
-        allowHeaders: ['Content-Type', 'X-Amz-Date', 'Authorization', 'X-Api-Key'],
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: methodsAllowed,
+        allowHeaders: ['*'],
+        allowCredentials: true,
       },
     });
 
     // Create API resources and methods
     const productsResource = api.root.addResource('products');
 
+    // Add request parameter for filename
+    const requestValidator = new apigateway.RequestValidator(
+      this,
+      "CreateProductRequestValidator",
+      {
+        restApi: api,
+        validateRequestParameters: true,
+        validateRequestBody: false,
+      }
+    );
+
+    // Create method response with CORS headers
+    const methodResponse: apigateway.MethodResponse = {
+      statusCode: "200",
+      responseParameters: {
+        "method.response.header.Access-Control-Allow-Origin": true,
+        "method.response.header.Access-Control-Allow-Headers": true,
+        "method.response.header.Access-Control-Allow-Methods": true,
+        "method.response.header.Access-Control-Allow-Credentials": true,
+      },
+    };
+
+    // Create error response with CORS headers
+    const errorResponse: apigateway.MethodResponse = {
+      statusCode: "403",
+      responseParameters: {
+        "method.response.header.Access-Control-Allow-Origin": true,
+        "method.response.header.Access-Control-Allow-Headers": true,
+        "method.response.header.Access-Control-Allow-Methods": true,
+        "method.response.header.Access-Control-Allow-Credentials": true,
+      },
+    };
+
     // POST /products - Create Product
-    productsResource.addMethod('POST', new apigateway.LambdaIntegration(createProduct));
+    productsResource.addMethod('POST', new apigateway.LambdaIntegration(createProduct),
+    {
+      requestValidator: requestValidator,
+      authorizer: authorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      methodResponses: [methodResponse, errorResponse],
+    });
 
     // GET /products - Get Product List
     productsResource.addMethod('GET', new apigateway.LambdaIntegration(getProductList));
