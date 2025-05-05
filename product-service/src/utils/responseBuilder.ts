@@ -1,6 +1,7 @@
 import { APIGatewayResponse } from "../types";
 
 const origins = [
+  "https://d2xanes5oeu9gx.cloudfront.net",
   "https://d4hva5vucegt5.cloudfront.net",
   "http://localhost:3000",
   "https://editor.swagger.io",

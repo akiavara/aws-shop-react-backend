@@ -10,7 +10,28 @@ const dynamodb = DynamoDBDocument.from(new DynamoDB());
 
 export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   console.log('POST /products request:', { event, body: event.body ? JSON.parse(event.body) : null });
-  const origin = event.headers?.origin || "";
+  const origin = event.headers.origin || event.headers.Origin || "*"; // Get the Origin header
+
+  // Handle OPTIONS requests (preflight)
+  if (event.httpMethod === "OPTIONS") {
+    const headers = {
+      "Access-Control-Allow-Origin": origin,
+      "Access-Control-Allow-Credentials": "true",
+      "Access-Control-Allow-Methods": "GET,PUT,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+    }
+
+    console.log(
+      "createProduct headers returned in OPTIONS call:",
+      JSON.stringify(headers)
+    );
+
+    return {
+      statusCode: 200,
+      headers: headers,
+      body: "",
+    };
+  }
 
   try {
     if (!event.body) {
